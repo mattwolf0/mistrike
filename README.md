@@ -17,6 +17,7 @@ python -m pip install -r requirements.txt
 - Optional saved timing history
 - NTP time check before sending
 - Simple colored terminal output
+- Keeps waiting for the next opening after a failed try
 
 ## Usage
 

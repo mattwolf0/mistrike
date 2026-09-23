@@ -215,6 +215,10 @@ def parse_apply(response):
     return "Unknown server response"
 
 
+def apply_done(response):
+    return response.get("code") == 0 and (response.get("data") or {}).get("apply_result") == 1
+
+
 def state_call(api, headers, timeout=10, tries=2):
     error = None
     for _ in range(tries):
