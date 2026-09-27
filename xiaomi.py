@@ -22,6 +22,10 @@ SessionFile = Path(__file__).resolve().parent / "data" / "session.json"
 DefaultAppVersion = "5.4.39"
 
 
+class LoginExpired(RuntimeError):
+    pass
+
+
 def new_web():
     web = requests.Session()
     web.headers.update({
@@ -48,6 +52,8 @@ def web_json(web, url, params=None, timeout=30):
         response = web.get(url, params=params, timeout=timeout)
         response.raise_for_status()
         return xiaomi_json(response)
+    except json.JSONDecodeError as exc:
+        raise ConnectionError("Xiaomi returned invalid login data") from exc
     except requests.Timeout as exc:
         raise ConnectionError("Connection timed out") from exc
     except requests.RequestException as exc:
@@ -68,6 +74,7 @@ def valid_session(data):
 
 
 def browser_login(web, open_login):
+    web.cookies.clear()
     auth = {"sid": "18n_bbs_global", "_json": "true"}
     first = web_json(web, ServiceLoginUrl, auth)
 
@@ -95,13 +102,18 @@ def browser_login(web, open_login):
 
 
 def get_service_token(web, account):
+    web.cookies.clear()
     put_session(web, account)
     data = web_json(web, ServiceLoginUrl, {"sid": "18n_bbs_global", "_json": "true"})
+    if not isinstance(data, dict):
+        raise ConnectionError("Mi Community returned invalid service data")
     nonce = data.get("nonce")
     security = data.get("ssecurity")
     location = data.get("location")
     if not nonce or not security or not location:
-        raise RuntimeError("Saved login expired or service data is missing")
+        if "_sign" in data or "serviceParam" in data:
+            raise LoginExpired("Xiaomi account login expired")
+        raise ConnectionError("Mi Community service data is missing")
 
     raw = f"nonce={nonce}&{security}".encode()
     sign = urllib.parse.quote(base64.b64encode(hashlib.sha1(raw).digest()))
@@ -116,7 +128,7 @@ def get_service_token(web, account):
 
     token = web.cookies.get_dict().get("new_bbs_serviceToken")
     if not token:
-        raise RuntimeError("Mi Community service token is missing")
+        raise ConnectionError("Mi Community service token is missing")
     return token
 
 

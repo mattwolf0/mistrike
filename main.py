@@ -115,7 +115,7 @@ def open_login(url):
 
 def new_login(web):
     account = xiaomi.browser_login(web, open_login)
-    good(f"Login successful for account {account['userId']}")
+    good(f"Xiaomi account confirmed for {account['userId']}")
     if ask_yes("Remember this login? [Y/n]: ", default=True):
         write_json(xiaomi.SessionFile, account)
         info(f"Session saved to {xiaomi.SessionFile}")
@@ -130,24 +130,12 @@ def get_login(web):
         print(f"\nSaved account: {paint(saved['userId'], Orange)}")
         choice = input("Enter to continue, or L to log out: ").strip().lower()
         if choice not in ("l", "logout"):
-            xiaomi.put_session(web, saved)
             return saved
 
         if remove_file(xiaomi.SessionFile):
             good("Saved login removed")
 
     return new_login(web)
-
-
-def get_token(web, account):
-    try:
-        return account, xiaomi.get_service_token(web, account)
-    except RuntimeError:
-        warn("Login expired, opening a new login")
-        remove_file(xiaomi.SessionFile)
-        web.cookies.clear()
-        account = new_login(web)
-        return account, xiaomi.get_service_token(web, account)
 
 
 def clear_wait():
@@ -229,14 +217,23 @@ def run():
 
     web = xiaomi.new_web()
     try:
-        account = get_login(web)
+        account = None
         manual_delay = None
         last_midnight = None
         with xiaomi.new_api() as api:
             while True:
                 try:
-                    account, token = get_token(web, account)
-                except ConnectionError as exc:
+                    if account is None:
+                        account = get_login(web)
+                    token = xiaomi.get_service_token(web, account)
+                except xiaomi.LoginExpired:
+                    warn("Login expired, opening a new login in one minute")
+                    remove_file(xiaomi.SessionFile)
+                    web.cookies.clear()
+                    account = None
+                    time.sleep(60)
+                    continue
+                except (ConnectionError, RuntimeError, ValueError) as exc:
                     fail(str(exc))
                     info("Trying login again in one minute")
                     time.sleep(60)
