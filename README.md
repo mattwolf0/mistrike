@@ -16,8 +16,12 @@ python -m pip install -r requirements.txt
 - Delay calculator from current ping
 - Optional saved timing history
 - NTP time check before sending
+- Fresh token and time check one minute before sending
+- Fresh ping a few seconds before sending
 - Simple colored terminal output
 - Keeps waiting for the next opening after a failed try
+- Checks a not ready account again before the next opening
+- Saved results of every try
 
 ## Usage
 
@@ -27,9 +31,11 @@ Run:
 python main.py
 ```
 
-Log in in the browser when it opens. You can save the login for next time.
+Log in in the browser when it opens. You can save the login for next time. Do not share the saved `data/session.json` file, because it gives full access to your Xiaomi account.
 
 Turn on the delay calculator if you want MiStrike to estimate the send delay. The program checks your account, waits for the Xiaomi target time, then sends one application request.
+
+Every try is saved to `data/results.json`, and the last five are shown at start. `sent` is the send time from 00:00 (GMT+8) and `server` is the Xiaomi server time, so you can see if the try was early or late.
 
 ## Disclaimer
 

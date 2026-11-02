@@ -181,10 +181,10 @@ def api_call(api, method, path, headers, body=None, timeout=10):
         return response.json()
     except requests.Timeout as exc:
         raise ConnectionError("API request timed out") from exc
-    except requests.RequestException as exc:
-        raise ConnectionError("API request failed") from exc
     except requests.JSONDecodeError as exc:
         raise ValueError("API returned invalid JSON") from exc
+    except requests.RequestException as exc:
+        raise ConnectionError("API request failed") from exc
 
 
 def parse_state(response):
